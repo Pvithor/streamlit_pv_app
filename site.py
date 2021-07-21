@@ -1,64 +1,13 @@
+from pandas.io import excel
 import streamlit as st
 import numpy as np
 import pandas as pd
+from depedencias.defs import *
+
 st.set_page_config(
     page_title="Dados",
     layout='wide',
 )
-
-@st.cache
-def pandas(nome,sepa=';'):
-    """ Abrir data frame e retorana com o nome dos cabeçario """
-    try:
-        data= pd.read_excel(nome)
-        cabeca = list(data)
-    
-    except:
-        try:
-            data = pd.read_hdf(nome)
-            cabeca = list(data)
-        except:
-            data = pd.read_csv(nome,sep=sepa )
-            cabeca = list(data)
-    
-    return data ,cabeca
-
-class config_pandas():
-    """ Opcoes do pandas """
-    def filtrar(df,filtrar):
-        """Filtrar pelo nome """
-        frame = df[filtrar]
-        return frame
-    
-    def pesquisa(df,coluna,opcoes,filtrar):
-        """ Filtar por columa e valor """
-        if filter == '' or coluna == '':
-            return
-        frame = config_pandas.filtrar(df,opcoes)
-        frame = frame.loc[(df[coluna]==filtrar)]
-        return frame
-
-    def remove_line(df,list):
-        """ Remover linha do pandas """
-        frame = df
-        try:
-            for line in list:
-                frame = frame.drop(int(line))
-            return frame
-        except KeyError:
-            st.error(f'Não válido {line}')
-            return False
-def dowload(df):
-    """ Baixar apos mudanca """
-    frame.to_excel('teste_exportacao.xlsx',index=False)
-    href = f'<a href="data:file/csv;{frame}">Download csv file</a>'
-
-def opc(str):
-    try:
-        if str[0]:
-            return True
-    except:
-        return False
 
 st.title("Dados tratamento")
 
@@ -69,46 +18,58 @@ if puro is not None:
     if puro.name.split('.')[-1] == 'csv':
         conf_cvs,conf_cvs2 = st.beta_columns(2)
         with conf_cvs:  
-            cvs_1 = st.text_input('separador do cvs:[padrao ** ; **] ')
+            st.markdown('separador do cvs:[padrao ** ; **] ')
+            cvs_1 = st.text_input('')
         if cvs_1 == '': cvs_1=';'
 
-    #print(puro.name.split('.')[-1])
+    #arquivo xlsx
     if puro.name.split('.')[-1] == 'xlsx':
-        conf_1,conf_2 = st.beta_columns(2)
-        with conf_1:
-            header = st.text_input('inicio do hearder: ')
-        with conf_2:
-            folha = st.text_input('Olha a ser extraida: ')
+        if st.checkbox('configuracoes adicionais'):
+            conf_1,conf_2 = st.beta_columns(2)
+            with conf_1:
+                header = st.text_input('inicio do hearder: ')
+            with conf_2:
+                folha = st.text_input('Olha a ser extraida: ')
 
 reset= False
 #Liberar apos  ter arquivo
 if puro is not None:
-    frame,cabeca= pandas(puro,sepa= cvs_1)
-    if st.checkbox('mostrar tabela',key='bruto'):
-        st.write(frame[:5])
+    #csv
+    if puro.name.split('.')[-1] == 'csv':
+       frame,cabeca= data_frame.csv(puro,sepa=cvs_1)
+    
+    elif puro.name.split('.')[-1] == 'dbf':
+        frame,cabeca= data_frame.hdf(puro)
+    
+    elif puro.name.split('.')[-1] == 'xlsx':
+        frame,cabeca= data_frame.exel(puro)
 
-    opcoes = st.multiselect('Opcoes',cabeca)
+    if st.checkbox('mostrar tabela',key='bruto'):
+        st.write(frame[:5]) 
+
+
+    opcoes = st.multiselect('Cabecarios para retirar',cabeca)
     
     #columa com `pesquisa`e `colua`
     col1,col2= st.beta_columns(2)
     with col1:
         pesquisa = st.text_input('Valor para ser pesquisado')
         remove_linha= st.text_input('linha pare remove').split(',')
+    
     with col2:
         columa = st.text_input('Nome da columa')
-
-    
+   
 
     opc = opc(opcoes)
     #filtar columa
-    df2=config_pandas.filtrar(frame,opcoes)
+    df2=filtros.filtrar(frame,opcoes)
     
     #GEral
     if pesquisa:
-        df2=config_pandas.pesquisa(frame,columa,opcoes,pesquisa)
+        df2=filtros.pesquisa(frame,columa,opcoes,pesquisa)
 
     if remove_linha != ['']:
-        df2= config_pandas.remove_line(df2,remove_linha) 
+        df2= filtros.remove_line(df2,remove_linha) 
         reset = True
 
 
@@ -122,7 +83,7 @@ if puro is not None:
 
     if previw:
         if tudo:
-            st.write(df2)
+            st.pd(df2,index=False)
         else:   
             st.write(df2.loc[:5])
     
@@ -130,11 +91,5 @@ if puro is not None:
         # st.success('Sucesso')
         # st.warning('warnig')
         # st.error('erro')
-       
 
-    if st.button('Exportar'):
-        st.markdown(dowload(frame), unsafe_allow_html=True)
-        st.write('Exportado')
-    
-    else:
-        st.write('Click para exportar')
+    st.markdown(baixar(df2,'Baixar cvs'),unsafe_allow_html=True)
