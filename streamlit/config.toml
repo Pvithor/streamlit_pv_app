@@ -1,4 +1,6 @@
 [theme]
 base="dark"
+[runner]
+magicEnabled = false
 [server]
 maxUploadSize = 1000
